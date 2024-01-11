@@ -54,7 +54,29 @@ const cellShaderModule = device.createShaderModule({
       @builtin(position) vec4f {
       return vec4f(pos, 0, 1); // (X, Y, Z, W)
     }
+
+    @fragment
+    fn fragmentMain() -> @location(0) vec4f {
+      return vec4f(1, 0, 0, 1); // (R, G, B, A)
+    }
   `
+});
+
+const cellPipeline = device.createRenderPipeline({
+  label: "Cell pipeline",
+  layout: "auto",
+  vertex: {
+    module: cellShaderModule,
+    entryPoint: "vertexMain",
+    buffers: [vertexBufferLayout]
+  },
+  fragment: {
+    module: cellShaderModule,
+    entryPoint: "fragmentMain",
+    targets: [{
+      format: canvasFormat
+    }]
+  }
 });
 
 const encoder = device.createCommandEncoder();
@@ -67,6 +89,10 @@ const pass = encoder.beginRenderPass({
     storeOp: "store",
   }]
 })
+
+pass.setPipeline(cellPipeline);
+pass.setVertexBuffer(0, vertexBuffer);
+pass.draw(vertices.length / 2); // 6 vertices
 
 pass.end();
 
