@@ -4,9 +4,16 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Game Of Life WebGPU</title>
+  <style>
+    canvas {
+      position: absolute;
+      height: 100%;
+      width: 100%;
+    }
+  </style>
 </head>
-<body>
-  <canvas width="512" height="512"></canvas>
-  <script type="module" src="app.js"></script>
+<body style="margin:0;">
+  <canvas></canvas>
+  <script defer type="module" src="app.js"></script>
 </body>
 </html>

@@ -1,10 +1,19 @@
 const canvas = document.querySelector('canvas');
 
+const CANVAS_WIDTH = window.innerWidth;
+const CANVAS_HEIGHT = window.innerHeight;
+const PIXEL_RATIO = Math.ceil(window.devicePixelRatio);
+const ASPECT_RATIO = window.innerWidth / window.innerHeight;
+
+canvas.width = Math.floor(CANVAS_WIDTH * PIXEL_RATIO);
+canvas.height = Math.floor(CANVAS_HEIGHT * PIXEL_RATIO);
+
 if (!navigator.gpu) {
   throw new Error('WebGPU not supported on this browser.');
 }
 
 const adapter = await navigator.gpu.requestAdapter();
+
 if (!adapter) {
   throw new Error('No appropriate GPUAdapter found.');
 }
@@ -20,13 +29,13 @@ context.configure({
 
 const vertices = new Float32Array([
   //   X,    Y,
-  -0.8, -0.8, // Triangle 1 (Blue)
-  0.8, -0.8,
-  0.8, 0.8,
+  -0.9, -0.9, // Triangle 1
+  0.9, -0.9,
+  0.9, 0.9,
 
-  -0.8, -0.8, // Triangle 2 (Red)
-  0.8, 0.8,
-  -0.8, 0.8,
+  -0.9, -0.9, // Triangle 2
+  0.9, 0.9,
+  -0.9, 0.9,
 ]);
 
 const vertexBuffer = device.createBuffer({
@@ -181,11 +190,12 @@ const simulationPipeline = device.createComputePipeline({
   }
 });
 
-const GRID_SIZE = 32;
-const UPDATE_INTERVAL = 100;
+const GRID_SIZE_HEIGHT = 128;
+const GRID_SIZE_WIDTH = Math.ceil(GRID_SIZE_HEIGHT * ASPECT_RATIO);
+const UPDATE_INTERVAL = 20;
 let step = 0;
 
-const uniformArray = new Float32Array([GRID_SIZE, GRID_SIZE]);
+const uniformArray = new Float32Array([GRID_SIZE_WIDTH, GRID_SIZE_HEIGHT]);
 const uniformBuffer = device.createBuffer({
   label: "Grid Uniforms",
   size: uniformArray.byteLength,
@@ -193,7 +203,7 @@ const uniformBuffer = device.createBuffer({
 })
 device.queue.writeBuffer(uniformBuffer, 0, uniformArray);
 
-const cellStateArray = new Uint32Array(GRID_SIZE * GRID_SIZE);
+const cellStateArray = new Uint32Array(GRID_SIZE_WIDTH * GRID_SIZE_HEIGHT);
 const cellStateStorage = [
   device.createBuffer({
     label: "Cell State A",
@@ -211,11 +221,6 @@ for (let i = 0; i < cellStateArray.length; ++i) {
   cellStateArray[i] = Math.random() > 0.6 ? 1 : 0;
 }
 device.queue.writeBuffer(cellStateStorage[0], 0, cellStateArray);
-
-// for (let i = 0; i < cellStateArray.length; i++) {
-//   cellStateArray[i] = i % 2;
-// }
-// device.queue.writeBuffer(cellStateStorage[1], 0, cellStateArray);
 
 const bindGroups = [
   device.createBindGroup({
@@ -256,7 +261,7 @@ function updateGrid() {
   computePass.setPipeline(simulationPipeline);
   computePass.setBindGroup(0, bindGroups[step % 2]);
 
-  const workgroupCount = Math.ceil(GRID_SIZE / WORKGROUP_SIZE);
+  const workgroupCount = Math.ceil(GRID_SIZE_WIDTH / WORKGROUP_SIZE);
   computePass.dispatchWorkgroups(workgroupCount, workgroupCount);
 
   computePass.end();
@@ -268,7 +273,7 @@ function updateGrid() {
     colorAttachments: [{
       view: context.getCurrentTexture().createView(),
       loadOp: "clear",
-      clearValue: { r: 0.3, g: 0.3, b: 0.8, a: 1 },
+      clearValue: { r: 0.05, g: 0.05, b: 0.05, a: 1 },
       storeOp: "store",
     }]
   })
@@ -277,7 +282,7 @@ function updateGrid() {
   pass.setPipeline(cellPipeline);
   pass.setVertexBuffer(0, vertexBuffer);
   pass.setBindGroup(0, bindGroups[step % 2]);
-  pass.draw(vertices.length / 2, GRID_SIZE * GRID_SIZE);
+  pass.draw(vertices.length / 2, GRID_SIZE_WIDTH * GRID_SIZE_HEIGHT);
 
   // End the render pass and submit the command buffer
   pass.end();
